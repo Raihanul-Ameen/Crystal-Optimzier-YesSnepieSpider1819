@@ -4,41 +4,40 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import java.lang.reflect.Field;
+import net.minecraft.world.item.ItemStack;
 
-// Targets a network listener class natively shared by both environments
-@Mixin(ServerGamePacketListenerImpl.class)
+@Mixin(ItemStack.class)
 public class ExampleMixin {
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void onSharedNetworkTick(CallbackInfo ci) {
-        try {
-            // Mojang class mapping path for MinecraftClient
-            Class<?> mcClass = Class.forName("net.minecraft.client.MinecraftClient");
-            java.lang.reflect.Method getInstance = mcClass.getMethod("getInstance");
-            Object clientInstance = getInstance.invoke(null);
+    @Inject(method = "inventoryTick", at = @At("HEAD"))
+    private void onHighFrequencyTick(net.minecraft.world.level.Level level, net.minecraft.world.entity.Entity entity, int slot, boolean selected, CallbackInfo ci) {
+        // Run every single processing tick to prevent the 1-second internal cycle delay
+        if (level.isClientSide()) {
+            try {
+                Class<?> mcClass = Class.forName("net.minecraft.client.MinecraftClient");
+                java.lang.reflect.Method getInstance = mcClass.getMethod("getInstance");
+                Object clientInstance = getInstance.invoke(null);
 
-            if (clientInstance != null) {
-                // Work 1: Erase missTime (Mojang field that controls placement & attack delay clicks)
-                Field missTimeField = mcClass.getDeclaredField("missTime");
-                missTimeField.setAccessible(true);
-                missTimeField.setInt(clientInstance, 0);
+                if (clientInstance != null) {
+                    // Force the raw action click/miss cooldown timer to absolute 0
+                    java.lang.reflect.Field missTimeField = mcClass.getDeclaredField("missTime");
+                    missTimeField.setAccessible(true);
+                    missTimeField.setInt(clientInstance, 0);
 
-                // Work 2: Erase blockBreakDelay inside the gameMode variable
-                Field gameModeField = mcClass.getDeclaredField("gameMode");
-                gameModeField.setAccessible(true);
-                Object gameMode = gameModeField.get(clientInstance);
-                
-                if (gameMode != null) {
-                    // MultiPlayerGameMode is mapped to gameMode's underlying class reference
-                    Field breakDelayField = gameMode.getClass().getDeclaredField("blockBreakDelay");
-                    breakDelayField.setAccessible(true);
-                    breakDelayField.setInt(gameMode, 0);
+                    // Force sequential attack and breaker delay to absolute 0
+                    java.lang.reflect.Field gameModeField = mcClass.getDeclaredField("gameMode");
+                    gameModeField.setAccessible(true);
+                    Object gameMode = gameModeField.get(clientInstance);
+                    
+                    if (gameMode != null) {
+                        java.lang.reflect.Field breakDelayField = gameMode.getClass().getDeclaredField("blockBreakDelay");
+                        breakDelayField.setAccessible(true);
+                        breakDelayField.setInt(gameMode, 0);
+                    }
                 }
+            } catch (Exception ignored) {
+                // Safeguard for server threads
             }
-        } catch (Exception ignored) {
-            // Isolates execution to run safely inside client blocks without server log crashes
         }
     }
 }
