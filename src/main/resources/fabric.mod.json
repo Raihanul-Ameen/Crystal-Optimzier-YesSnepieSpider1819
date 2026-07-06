@@ -21,7 +21,7 @@
   },
   "mixins": [
     {
-      "config": "crystal_optimizer.mixins.json",
+      "config": "modid.mixins.json",
       "environment": "client"
     }
   ],
