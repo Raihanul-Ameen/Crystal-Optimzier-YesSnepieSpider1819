@@ -15,12 +15,10 @@ repositories {
 }
 
 loom {
-	splitEnvironmentSourceSets()
-
+	// Removed splitEnvironmentSourceSets() to allow client code inside src/main
 	mods {
 		"modid" {
 			sourceSet sourceSets.main
-			sourceSet sourceSets.client
 		}
 	}
 }
