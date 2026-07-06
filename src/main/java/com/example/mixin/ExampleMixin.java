@@ -5,13 +5,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import java.lang.reflect.Field;
 
 @Mixin(ItemStack.class)
 public class ExampleMixin {
 
     @Inject(method = "inventoryTick", at = @At("HEAD"))
-    private void onHighFrequencyTick(net.minecraft.world.level.Level level, net.minecraft.world.entity.Entity entity, int slot, boolean selected, CallbackInfo ci) {
-        // Run every single processing tick to prevent the 1-second internal cycle delay
+    private void onHighFrequencyTick(Level level, Entity entity, EquipmentSlot slot, CallbackInfo ci) {
+        // Triggers continuously on the client thread layer to stop the 1-second pauses
         if (level.isClientSide()) {
             try {
                 Class<?> mcClass = Class.forName("net.minecraft.client.MinecraftClient");
@@ -19,24 +23,24 @@ public class ExampleMixin {
                 Object clientInstance = getInstance.invoke(null);
 
                 if (clientInstance != null) {
-                    // Force the raw action click/miss cooldown timer to absolute 0
-                    java.lang.reflect.Field missTimeField = mcClass.getDeclaredField("missTime");
+                    // Work 1: Force placement and weapon attack delay clicks to 0
+                    Field missTimeField = mcClass.getDeclaredField("missTime");
                     missTimeField.setAccessible(true);
                     missTimeField.setInt(clientInstance, 0);
 
-                    // Force sequential attack and breaker delay to absolute 0
-                    java.lang.reflect.Field gameModeField = mcClass.getDeclaredField("gameMode");
+                    // Work 2: Force multi-target breaking delay buffer to 0
+                    Field gameModeField = mcClass.getDeclaredField("gameMode");
                     gameModeField.setAccessible(true);
                     Object gameMode = gameModeField.get(clientInstance);
                     
                     if (gameMode != null) {
-                        java.lang.reflect.Field breakDelayField = gameMode.getClass().getDeclaredField("blockBreakDelay");
+                        Field breakDelayField = gameMode.getClass().getDeclaredField("blockBreakDelay");
                         breakDelayField.setAccessible(true);
                         breakDelayField.setInt(gameMode, 0);
                     }
                 }
             } catch (Exception ignored) {
-                // Safeguard for server threads
+                // Safely handles server execution steps without tracking logs
             }
         }
     }
