@@ -5,7 +5,7 @@
   "name": "Crystal Optimizer",
   "description": "Removes placement and breaking delays for end crystals instantly.",
   "authors": [
-    "YesSnepieSpider1819"
+    "YesSnepieSpider"
   ],
   "contact": {
     "homepage": "https://github.com",
@@ -15,9 +15,7 @@
   "icon": "assets/crystal_optimizer/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": [
-      "com.example.CrystalOptimizer"
-    ]
+    "main": []
   },
   "mixins": [
     {
