@@ -1,5 +1,7 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	// FIX: Replaced the dynamic snapshot variable string with a direct static string format 
+	// to allow Gradle 9.5.1 to register Loom configurations correctly
+	id 'net.fabricmc.fabric-loom' version '1.17.13'
 	id 'maven-publish'
 }
 
@@ -7,7 +9,6 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-	// Add repositories to retrieve artifacts from in here if needed.
 }
 
 loom {
@@ -21,10 +22,9 @@ loom {
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	
-	// FIX 1: Added the mandatory Yarn mappings dependency so Loom knows what Minecraft classes are
+	// This configuration method is now fully recognized by Loom 1.17.13
 	mappings "net.fabricmc:yarn:${project.minecraft_version}+build.1:v2"
 
-	// FIX 2: Swapped out generic 'implementation' with 'modImplementation' so Loom can de-obfuscate the libraries
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
